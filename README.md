@@ -1,9 +1,10 @@
 # gdocs-forensics
 
 Reconstructs a Google Doc's full edit history with **per-character, per-tab
-authorship**, by replaying Google Docs' internal revision changelog. Built for
-authorship disputes where you need "who wrote this exact text," not just "who
-edited when."
+contribution analytics**, by replaying Google Docs' internal revision changelog.
+Useful for understanding how a collaborative document came together — who
+contributed what, when, and how the text evolved over time. Handy for writing-
+process research, collaboration analytics, retrospectives, and teaching.
 
 ## Quick start (step by step)
 
@@ -67,7 +68,7 @@ Everything is written to `./output/`:
   docs.google.com and pass `--cookies cookies.txt`.
 - **403 / 404 from the endpoint** — the signed-in account can't open that document.
   Sign in as an account that has access.
-- **"Could not determine revision count"** — inspect `output/evidence/raw/` and
+- **"Could not determine revision count"** — inspect `output/raw/` and
   open an issue; Google may have changed the response shape.
 
 ## How it works
@@ -86,7 +87,7 @@ Everything is written to `./output/`:
    We keep one text buffer per tab, so each tab reconstructs independently with
    every character stamped by its author.
 6. Writes a report, per-tab color-coded HTML and CSV, and preserves the raw API
-   responses + a SHA-256 manifest under `evidence/`.
+   responses + a SHA-256 manifest under `raw/` so results can be reproduced.
 
 ## Command reference
 ```
@@ -101,13 +102,13 @@ uv run gdocs-forensics --url URL [options]
 ## Outputs
 - **`dashboard.html`** — a single self-contained, offline interactive report:
   document-wide ownership, per-tab authorship, "who built it when" timeline,
-  activity-by-hour heatmap, the **edit-war matrix** (who deleted whose words),
-  **recovered deleted text**, likely **pastes**, **links/structure** by author,
-  per-character **colored text**, and a Draftback-style **playback** scrubber.
-  No server or network needed; can be hashed for chain-of-custody.
+  activity-by-hour heatmap, the **deletions matrix** (which author removed which
+  author's text), **deleted text**, likely **pastes**, **links/structure** by
+  author, per-character **colored text**, and a Draftback-style **playback**
+  scrubber. No server or network needed; can be archived for reference.
 - **`report.pdf`** — a static multi-page version, opening with a one-page
-  **executive summary** (ownership, who-typed-vs-pasted, who-deleted-whose-work,
-  per-tab owners), for formal submission.
+  **executive summary** (ownership, typed-vs-pasted, deletions between authors,
+  per-tab owners), for easy sharing.
 - **`all_tabs_colored.html`** — a standalone, printable page: the entire document,
   all tabs in creation order, every character colored by its author.
 - `insights.json` — the full computed analytics bundle (machine-readable).
@@ -118,13 +119,13 @@ uv run gdocs-forensics --url URL [options]
   live tab's File → Download → plain text).
 - `tabs/<tabid>/timeline.csv` — every insert/delete in that tab, with author,
   segment, timestamp, and text.
-- `evidence/raw/*.json` + `evidence/manifest.json` — untouched API responses with
-  SHA-256 hashes, for chain-of-custody.
+- `raw/*.json` + `raw/manifest.json` — untouched API responses with SHA-256
+  hashes, so results can be verified or reproduced.
 
 ### What gets analyzed
 Per-character authorship and survival, typed-vs-pasted split, per-tab ownership,
 who created each tab, cumulative contribution over time, activity by hour,
-editing sessions, the author×author deletion matrix, recovered deleted passages,
+editing sessions, the author×author deletion matrix, deleted passages,
 hyperlinks/images/lists/tables/headings/comment-anchors by author, and
 paragraph-level attribution. Comment *thread text* needs the Drive API (OAuth);
 only comment-anchor authorship is taken from the revision stream.
@@ -133,20 +134,17 @@ only comment-anchor authorship is taken from the revision stream.
 Reconstructed tab lengths match the live document's per-tab text export within a
 few percent (the small delta is ongoing edits between runs). `uv run python
 test_offline.py` validates parse → replay → analyze on a synthetic two-author
-changelog, including
-insert/delete attribution and edit-war accounting (text inserted then deleted
-survives as 0 chars).
+changelog, including insert/delete attribution and deletion accounting (text
+inserted then deleted survives as 0 chars).
 
-## Important caveats (read before relying on this for a dispute)
+## Notes & limitations
 - These endpoints are **undocumented and unofficial**; Google can change the
   response shape at any time. The parser is defensive and always keeps raw data.
   Check `report.md`'s "Parse / replay diagnostics" — unrecognized mutations or
   replay warnings mean a reconstruction may be incomplete.
-- For a **legal** proceeding, a self-run extract is the weakest form of evidence.
-  Pair it with (a) Google's native File → Version history (screen-recorded; it
-  shows per-author colored changes per tab) and ideally (b) a formal request /
-  subpoena to Google or Google Vault, which produce the authoritative record.
-  This tool is for investigation and corroboration.
-- Attribution is only as honest as the data: pasted text is attributed to the
-  person who pasted it, not its original source. Large single inserts in
-  `timeline.csv` flag likely pastes worth scrutinizing.
+- Google's native **File → Version history** is the authoritative source for what
+  changed; this tool is for analysis and exploration on top of that history.
+- Attribution reflects whoever **typed or pasted** text, not the original source
+  of pasted content. Large single inserts in `timeline.csv` flag likely pastes.
+- Only analyze documents you have legitimate access to, and respect the privacy
+  of collaborators whose names appear in the output.

@@ -34,7 +34,7 @@ class Replayer:
         self.deleted_chars: dict[str, int] = {}
         # Tombstones: every deletion event, retaining the removed text AND the
         # original author of each removed character. This is what powers
-        # edit-war analysis ("who deleted whose words") and recovery of text
+        # deletion analysis (which author removed which author's text) and recovery
         # that was written and later removed.
         self.deletions: list[dict] = []
 

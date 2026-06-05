@@ -1,6 +1,6 @@
 """Render a single self-contained, offline HTML dashboard from the insights
 bundle. No external libraries: charts are drawn as inline SVG by vanilla JS, so
-the file opens in any browser with no network and can be hashed for evidence.
+the file opens in any browser with no network and can be archived for reference.
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ def render_combined(bundle: dict, path: str) -> None:
 
 _HEAD = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Authorship Forensics</title>
+<title>Document Revision Analytics</title>
 <style>
 :root{--bg:#0b0f17;--panel:#141a26;--ink:#e7edf6;--mut:#8a97ab;--line:#222c3c;}
 *{box-sizing:border-box}
@@ -85,10 +85,10 @@ select{background:var(--panel);color:var(--ink);border:1px solid var(--line);bor
 .legend{display:flex;gap:14px;flex-wrap:wrap;margin:6px 0 14px}
 .kbd{font-family:ui-monospace,monospace;background:#1d2636;padding:1px 6px;border-radius:5px}
 </style></head><body>
-<header><h1>Authorship Forensics</h1><div class="sub" id="hdr"></div></header>
+<header><h1>Document Revision Analytics</h1><div class="sub" id="hdr"></div></header>
 <nav>
  <a href="#summary">Summary</a><a href="#overview">Overview</a><a href="#tabs">Tabs</a>
- <a href="#timeline">Timeline</a><a href="#activity">Activity</a><a href="#war">Edit war</a>
+ <a href="#timeline">Timeline</a><a href="#activity">Activity</a><a href="#war">Deletions</a>
  <a href="#deleted">Deleted text</a><a href="#pastes">Pastes</a>
  <a href="#structure">Links &amp; structure</a><a href="#text">Colored text</a>
  <a href="#combined">All-tabs text</a><a href="#playback">Playback</a>
@@ -125,7 +125,7 @@ function legend(){return '<div class="legend">'+A.map((a,i)=>
     '<div class="grid three" style="margin-top:16px">'+
     '<div class="panel"><b>Final-text ownership</b>'+own+'</div>'+
     '<div class="panel"><b>Authorship style</b>'+li(X.authorship_style)+'</div>'+
-    '<div class="panel"><b>Who removed whose work</b>'+li(X.deletions.length?X.deletions:['No cross-author deletions'])+'</div>'+
+    '<div class="panel"><b>Deletions between authors</b>'+li(X.deletions.length?X.deletions:['No cross-author deletions'])+'</div>'+
     '</div>'+
     '<div class="panel" style="margin-top:16px"><b>Tab ownership</b><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">'+
     X.tab_owners.map(t=>'<span class="pill">'+esc(t.tab)+' → <b>'+esc(t.owner)+'</b> '+t.pct+'%</span>').join('')+'</div></div>');
@@ -207,24 +207,24 @@ function legend(){return '<div class="legend">'+A.map((a,i)=>
   sec('activity','Activity by hour of day (UTC)', '<div class="panel" style="overflow:auto"><table>'+hdr+rows+'</table></div>');
 })();
 
-/* ---------- Edit war matrix ---------- */
+/* ---------- Deletions matrix ---------- */
 (function(){
-  const M=DATA.edit_war.matrix;
+  const M=DATA.deletions.matrix;
   let rows=A.map((o,oi)=>{let tds=A.map((d,di)=>{const v=(M[oi]&&M[oi][di])||0;
       const t=v?Math.min(1,v/2000):0;const bg=v?('rgba(220,38,38,'+(0.15+0.8*t).toFixed(2)+')'):'#0e1420';
       return '<td class="right" style="background:'+bg+'">'+(v?v.toLocaleString():'')+'</td>';}).join('');
     return '<tr><td><span class="swatch" style="background:'+o.color+'"></span>'+esc(o.name)+'</td>'+tds+'</tr>';}).join('');
   let hdr='<tr><th>author ↓ deleted by →</th>'+A.map(a=>'<th class="right">'+esc(a.name)+'</th>').join('')+'</tr>';
-  sec('war','Who deleted whose words', '<div class="panel"><div class="mut" style="margin-bottom:8px">Rows = original author of the text; columns = who deleted it. Counts are characters.</div><table>'+hdr+rows+'</table></div>');
+  sec('war','Deletions between authors', '<div class="panel"><div class="mut" style="margin-bottom:8px">Rows = original author of the text; columns = who deleted it. Counts are characters.</div><table>'+hdr+rows+'</table></div>');
 })();
 
 /* ---------- Deleted passages ---------- */
 (function(){
-  const P=DATA.edit_war.passages;
+  const P=DATA.deletions.passages;
   let rows=P.map(p=>'<tr><td>'+esc(AN(p.orig_author))+'</td><td>'+esc(AN(p.del_author))+'</td>'+
     '<td>'+fmtDate(p.del_ts)+'</td><td class="right">'+p.len+'</td>'+
     '<td><span class="del">'+esc(p.text)+(p.len>600?'…':'')+'</span></td></tr>').join('');
-  sec('deleted','Recovered deleted text ('+P.length+' passages ≥ 40 chars)',
+  sec('deleted','Deleted text ('+P.length+' passages ≥ 40 chars)',
     '<div class="panel" style="max-height:560px;overflow:auto"><table><tr><th>Original author</th><th>Deleted by</th><th>When</th><th class="right">Len</th><th>Text</th></tr>'+
     (rows||'<tr><td class="mut">none</td></tr>')+'</table></div>');
 })();

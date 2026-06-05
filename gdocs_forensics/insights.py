@@ -159,7 +159,7 @@ def build_bundle(*, doc_id, last_rev, user_map, mutations, replayer,
                      "participants": sorted(uidx.get(p) for p in s["participants"])}
                     for s in sessions]
 
-    # ---- edit-war: deletion matrix + recovered passages -----------------
+    # ---- deletion: deletion matrix + recovered passages -----------------
     matrix = defaultdict(lambda: defaultdict(int))   # orig -> deleter -> chars
     passages = []
     for d in replayer.deletions:
@@ -274,7 +274,7 @@ def build_bundle(*, doc_id, last_rev, user_map, mutations, replayer,
         "tabs": tabs,
         "timeline": {"cumulative": cumulative, "hour": hour, "weekday": weekday,
                      "sessions": sessions_out},
-        "edit_war": {"matrix": deletion_matrix, "passages": passages[:60]},
+        "deletions": {"matrix": deletion_matrix, "passages": passages[:60]},
         "pastes": sorted(pastes, key=lambda p: -p["size"])[:60],
         "structure": structure_summary,
         "colored": colored,

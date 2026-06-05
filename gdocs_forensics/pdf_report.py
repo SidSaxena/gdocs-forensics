@@ -67,7 +67,7 @@ def render(bundle: dict, path: str) -> None:
                   [f"{o['name']}: {o['pct']}%  ({o['surviving']:,} chars)"
                    for o in X.get("ownership", [])])
             block("Authorship style", X.get("authorship_style", []))
-            block("Who removed whose work",
+            block("Deletions between authors",
                   X.get("deletions", []) or ["No cross-author deletions"])
             block("Tab ownership",
                   [f"{t['tab']} → {t['owner']} ({t['pct']}%)"
@@ -86,7 +86,7 @@ def render(bundle: dict, path: str) -> None:
 
         # ---- author detail table ----
         fig = _fig()
-        _title(fig, "Authorship Forensic Report",
+        _title(fig, "Document Revision Report",
                f"Document {bundle['doc_id']}  ·  {bundle['total_revs']} revisions  ·  "
                f"{bundle['total_chars']:,} surviving chars  ·  generated {bundle['generated']}")
         tot = sum(a["surviving"] for a in A) or 1
@@ -153,8 +153,8 @@ def render(bundle: dict, path: str) -> None:
         fig.colorbar(im, ax=ax, fraction=0.025, label="edits")
         pdf.savefig(fig); plt.close(fig)
 
-        # ---- edit-war: cross-author deletions ----
-        M = bundle["edit_war"]["matrix"]; n = len(A)
+        # ---- deletion: cross-author deletions ----
+        M = bundle["deletions"]["matrix"]; n = len(A)
 
         def mget(o, d):  # bundle keys may be int (in-memory) or str (from JSON)
             row = M.get(o, M.get(str(o), {})) or {}
@@ -169,7 +169,7 @@ def render(bundle: dict, path: str) -> None:
         vmax = np.nanmax(off) if n > 1 and np.isfinite(np.nanmax(off)) else 1
         cmap = plt.cm.Reds.copy(); cmap.set_bad("#f0f0f0")
 
-        fig = _fig(); _title(fig, "Who deleted whose words",
+        fig = _fig(); _title(fig, "Deletions between authors",
                              "characters of each author's text removed by each other author "
                              "(diagonal = self-revision, greyed)")
         ax = fig.add_axes([0.26, 0.26, 0.52, 0.56])
@@ -196,10 +196,10 @@ def render(bundle: dict, path: str) -> None:
         pdf.savefig(fig); plt.close(fig)
 
         # ---- text appendix: deleted passages ----
-        _text_page(pdf, "Recovered deleted text (top passages)",
+        _text_page(pdf, "Deleted text (top passages)",
                    [f"[{AN(A,p['orig_author'])} → deleted by {AN(A,p['del_author'])}, "
                     f"{(p['del_ts'] or '')[:16]}, {p['len']} chars]\n{p['text'][:500]}"
-                    for p in bundle["edit_war"]["passages"][:18]])
+                    for p in bundle["deletions"]["passages"][:18]])
 
         # ---- text appendix: pastes ----
         _text_page(pdf, "Large inserts / likely pastes",

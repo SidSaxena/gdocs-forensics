@@ -39,7 +39,7 @@ def extract_doc_id(url_or_id: str) -> str:
 
 
 def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description="Google Docs authorship forensics")
+    ap = argparse.ArgumentParser(description="Google Docs revision history analysis")
     ap.add_argument("--url", required=True, help="Doc URL or id")
     ap.add_argument("--browser", default="chrome",
                     help=f"Browser to read cookies from {auth.SUPPORTED_BROWSERS}")
@@ -51,7 +51,7 @@ def main(argv=None) -> int:
 
     doc_id = extract_doc_id(args.url)
     out = os.path.abspath(args.out)
-    evidence = os.path.join(out, "evidence")
+    raw_dir = os.path.join(out, "raw")
     os.makedirs(out, exist_ok=True)
 
     print(f"[*] Document id: {doc_id}")
@@ -63,7 +63,7 @@ def main(argv=None) -> int:
               "first (or pass --cookies).", file=sys.stderr)
         return 2
 
-    f = fetch.RevisionFetcher(doc_id, jar, evidence)
+    f = fetch.RevisionFetcher(doc_id, jar, raw_dir)
     print("[*] Handshake + finding true revision count …")
     di = f.bootstrap()
     last_rev = f.find_last_revision(tab=None, hint=di or 1)
@@ -119,7 +119,7 @@ def main(argv=None) -> int:
         tab_titles=tab_titles, segments=segments, replayer=r, user_map=user_map)
 
     # ---- full analytics bundle -> dashboard + PDF -------------------------
-    print("[*] Building analytics bundle (edit-war, structure, playback) …")
+    print("[*] Building analytics bundle (deletion, structure, playback) …")
     bundle = insights.build_bundle(
         doc_id=doc_id, last_rev=last_rev, user_map=user_map, mutations=mutations,
         replayer=r, structure=structure, tab_titles=tab_titles, segments=segments,
@@ -141,7 +141,7 @@ def main(argv=None) -> int:
     print("    Interactive dashboard:", os.path.join(out, "dashboard.html"))
     print("    PDF report:", os.path.join(out, "report.pdf"))
     print(f"    Per-tab outputs under: {os.path.join(out, 'tabs')}")
-    print(f"    Raw evidence + manifest: {evidence}")
+    print(f"    Raw API responses + manifest: {raw_dir}")
     print("\nPer-tab summary:")
     for seg in segments:
         n = len(r.segments[seg])

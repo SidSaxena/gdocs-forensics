@@ -8,9 +8,8 @@ Two endpoints are used, both authenticated by the caller's own session cookies:
   - revisions/load  : the atomic change log. Every insert/delete mutation, in
                       order, one entry per revision.
 
-Everything fetched is written verbatim to an evidence/ directory with a SHA-256
-manifest before any parsing happens, so the raw artifacts are preserved for
-chain-of-custody.
+Everything fetched is written verbatim to a raw/ directory with a SHA-256
+manifest before any parsing happens, so results can be verified or reproduced.
 
 NOTE: these endpoints are undocumented and unofficial. Response shapes drift over
 time, so the parser (parse.py) is written defensively and we always keep the raw
@@ -46,10 +45,10 @@ def _strip_xssi(text: str) -> Any:
 
 
 class RevisionFetcher:
-    def __init__(self, doc_id: str, cookiejar, evidence_dir: str):
+    def __init__(self, doc_id: str, cookiejar, raw_dir: str):
         self.doc_id = doc_id
-        self.evidence_dir = evidence_dir
-        os.makedirs(os.path.join(evidence_dir, "raw"), exist_ok=True)
+        self.raw_dir = raw_dir
+        os.makedirs(raw_dir, exist_ok=True)
         self.session = requests.Session()
         self.session.cookies = requests.cookies.merge_cookies(
             self.session.cookies, cookiejar
@@ -73,7 +72,7 @@ class RevisionFetcher:
             time.sleep(1.5 * (attempt + 1))
         if not save:
             return _strip_xssi(resp.text)
-        raw_path = os.path.join(self.evidence_dir, "raw", f"{tag}.json")
+        raw_path = os.path.join(self.raw_dir, f"{tag}.json")
         with open(raw_path, "wb") as fh:
             fh.write(resp.content)
         digest = hashlib.sha256(resp.content).hexdigest()
@@ -123,13 +122,13 @@ class RevisionFetcher:
         if not self.token:
             raise RuntimeError(
                 "Could not obtain an XSRF token from the bootstrap response. "
-                f"Inspect evidence/raw/{tag}.json."
+                f"Inspect raw/{tag}.json."
             )
         return last_rev
 
     def _has_revisions(self, end: int, tab: Optional[str]) -> bool:
         """True if a load request for [1, end] returns a non-empty changelog.
-        Used only for probing — responses are not saved to evidence/."""
+        Used only for probing — responses are not saved to disk."""
         data = self._get("load", {"start": 1, "end": end, "token": self.token},
                           tag="probe", tab=tab, save=False)
         if isinstance(data, dict):
@@ -231,7 +230,7 @@ class RevisionFetcher:
 
         url = f"https://docs.google.com/document/d/{self.doc_id}/edit"
         resp = self.session.get(url, timeout=60)
-        with open(os.path.join(self.evidence_dir, "raw", "edit_page.html"), "wb") as fh:
+        with open(os.path.join(self.raw_dir, "edit_page.html"), "wb") as fh:
             fh.write(resp.content)
         # Prefer real-looking ids (long, containing a digit) and higher frequency.
         counts = Counter(re.findall(r"t\.[a-z0-9]{6,}", resp.text))
@@ -248,7 +247,7 @@ class RevisionFetcher:
         return list(seen_streams.values())
 
     def write_manifest(self) -> str:
-        path = os.path.join(self.evidence_dir, "manifest.json")
+        path = os.path.join(self.raw_dir, "manifest.json")
         with open(path, "w") as fh:
             json.dump(
                 {"doc_id": self.doc_id, "artifacts": self._manifest},

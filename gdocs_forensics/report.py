@@ -82,7 +82,7 @@ def write_report_md(
     tab_titles: dict = None, segments: list = None, replayer=None, user_map: dict = None,
 ) -> None:
     lines = [
-        f"# Authorship forensic report — {doc_title or doc_id}",
+        f"# Document revision report — {doc_title or doc_id}",
         "",
         f"- Document id: `{doc_id}`",
         f"- Revisions analyzed: **{total_revs}**",
@@ -159,9 +159,9 @@ def write_report_md(
     lines += ["",
               "---",
               "_Method: per-character replay of Google Docs' internal revision "
-              "changelog, authored via the signed-in account's own session. Raw "
-              "API responses and a SHA-256 manifest are preserved under `evidence/` "
-              "for verification._"]
+              "changelog, fetched via the signed-in account's own session. Raw "
+              "API responses and a SHA-256 manifest are preserved under `raw/` so "
+              "results can be verified or reproduced._"]
 
     with open(path, "w") as fh:
         fh.write("\n".join(lines))
