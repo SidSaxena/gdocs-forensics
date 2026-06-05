@@ -14,7 +14,7 @@ def render(bundle: dict, path: str) -> None:
     doc = (_HEAD
            + "<script>\nconst DATA = " + data_json + ";\n</script>\n"
            + "<script>\n" + _JS + "\n</script>\n</body></html>")
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         fh.write(doc)
 
 
@@ -44,7 +44,7 @@ def render_combined(bundle: dict, path: str) -> None:
            f'<style>.t{{white-space:pre-wrap;margin:0 0 26px}}h2{{margin:26px 0 6px;'
            f'border-bottom:1px solid #ddd;padding-bottom:3px}}</style>'
            f'{"".join(parts)}</body>')
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         fh.write(doc)
 
 

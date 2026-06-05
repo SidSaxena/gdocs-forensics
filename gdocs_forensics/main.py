@@ -39,6 +39,15 @@ def extract_doc_id(url_or_id: str) -> str:
 
 
 def main(argv=None) -> int:
+    # Windows consoles default to a legacy code page (e.g. cp1252) that can't
+    # encode the Unicode in document text or tab titles; force UTF-8 so that
+    # status prints (arrows, the 📝 tab title, …) can't crash the run.
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
     ap = argparse.ArgumentParser(description="Google Docs revision history analysis")
     ap.add_argument("--url", required=True, help="Doc URL or id")
     ap.add_argument("--browser", default="chrome",
@@ -101,7 +110,7 @@ def main(argv=None) -> int:
         seg_stats = analyze.author_stats(cells, seg_muts, {}, {}, user_map)
         tdir = os.path.join(out, "tabs", re.sub(r"[^A-Za-z0-9.]+", "_", seg))
         os.makedirs(tdir, exist_ok=True)
-        with open(os.path.join(tdir, "reconstructed.txt"), "w") as fh:
+        with open(os.path.join(tdir, "reconstructed.txt"), "w", encoding="utf-8") as fh:
             fh.write(f"# {title} ({seg})\n\n{r.text(seg)}")
         report.write_attributed_html(cells, user_map, seg_stats,
                                      os.path.join(tdir, "attributed_text.html"))
@@ -125,7 +134,7 @@ def main(argv=None) -> int:
         replayer=r, structure=structure, tab_titles=tab_titles, segments=segments,
         generated_ms=int(_time.time() * 1000))
     import json as _json
-    with open(os.path.join(out, "insights.json"), "w") as fh:
+    with open(os.path.join(out, "insights.json"), "w", encoding="utf-8") as fh:
         _json.dump(bundle, fh, ensure_ascii=False)
     dashboard.render(bundle, os.path.join(out, "dashboard.html"))
     dashboard.render_combined(bundle, os.path.join(out, "all_tabs_colored.html"))

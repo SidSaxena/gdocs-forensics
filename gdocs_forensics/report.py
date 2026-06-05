@@ -56,12 +56,12 @@ def write_attributed_html(
 <hr>
 <div>{''.join(spans)}</div>
 </body>"""
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         fh.write(doc)
 
 
 def write_timeline_csv(mutations: list[Mutation], user_map: dict, path: str) -> None:
-    with open(path, "w", newline="") as fh:
+    with open(path, "w", newline="", encoding="utf-8-sig") as fh:
         w = csv.writer(fh)
         w.writerow(["revision", "timestamp_utc", "author", "segment", "op",
                     "index", "range", "text"])
@@ -163,5 +163,5 @@ def write_report_md(
               "API responses and a SHA-256 manifest are preserved under `raw/` so "
               "results can be verified or reproduced._"]
 
-    with open(path, "w") as fh:
+    with open(path, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines))

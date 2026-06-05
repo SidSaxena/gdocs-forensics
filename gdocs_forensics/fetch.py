@@ -248,7 +248,7 @@ class RevisionFetcher:
 
     def write_manifest(self) -> str:
         path = os.path.join(self.raw_dir, "manifest.json")
-        with open(path, "w") as fh:
+        with open(path, "w", encoding="utf-8") as fh:
             json.dump(
                 {"doc_id": self.doc_id, "artifacts": self._manifest},
                 fh,
