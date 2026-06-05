@@ -1,0 +1,23 @@
+# Generated analysis output — contains document content & author data. NEVER commit.
+output/
+output-*/
+*.output/
+
+# Local Python environment
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Exported cookies or any local secrets — NEVER commit
+cookies.txt
+*cookies*.txt
+token.json
+*.token
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
