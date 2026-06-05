@@ -13,7 +13,10 @@ edited when."
 > Google account that can open the document.
 
 ### 0. Prerequisites
-- **Python 3.9+** — check with `python3 --version`
+- **[uv](https://docs.astral.sh/uv/)** — the only thing you need to install; it
+  manages Python and dependencies for you.
+  - macOS / Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+  - Windows (PowerShell): `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
 - **git**
 - The Google account that has access to the document, **signed in to Chrome**
   (or Firefox / Edge / Safari / Brave) on this computer.
@@ -24,19 +27,12 @@ git clone https://github.com/SidSaxena/gdocs-forensics.git
 cd gdocs-forensics
 ```
 
-### 2. Create a virtual environment and install dependencies
-macOS / Linux:
+### 2. Install dependencies
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+uv sync
 ```
-Windows (PowerShell):
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-```
+That's it — `uv` creates the environment and installs everything (it even fetches
+a suitable Python if you don't have one). Same command on macOS, Linux, Windows.
 
 ### 3. Sign in
 Open the target Google Doc in **Chrome** (or your chosen browser) and confirm you
@@ -46,7 +42,7 @@ Troubleshooting.)
 
 ### 4. Run it
 ```bash
-python -m gdocs_forensics.main \
+uv run gdocs-forensics \
   --url "https://docs.google.com/document/d/<YOUR_DOC_ID>/edit" \
   --browser chrome \
   --out ./output
@@ -54,6 +50,8 @@ python -m gdocs_forensics.main \
 - Paste the full document URL (or just the id) after `--url`.
 - One run captures **all tabs** automatically — you don't list tab ids.
 - It takes ~30–60s. Add `--no-pdf` to skip the PDF.
+- `uv run` activates the environment automatically — no `source .venv/...` needed.
+  (Equivalent: `uv run python -m gdocs_forensics.main --url ...`.)
 
 ### 5. Open the results
 Everything is written to `./output/`:
@@ -92,7 +90,7 @@ Everything is written to `./output/`:
 
 ## Command reference
 ```
-python -m gdocs_forensics.main --url URL [options]
+uv run gdocs-forensics --url URL [options]
   --url       Google Doc URL or document id (required)
   --browser   chrome | chromium | firefox | safari | edge | brave   (default: chrome)
   --cookies   path to an exported cookies.txt (overrides --browser)
@@ -133,8 +131,9 @@ only comment-anchor authorship is taken from the revision stream.
 
 ## Validation
 Reconstructed tab lengths match the live document's per-tab text export within a
-few percent (the small delta is ongoing edits between runs). `test_offline.py`
-validates parse → replay → analyze on a synthetic two-author changelog, including
+few percent (the small delta is ongoing edits between runs). `uv run python
+test_offline.py` validates parse → replay → analyze on a synthetic two-author
+changelog, including
 insert/delete attribution and edit-war accounting (text inserted then deleted
 survives as 0 chars).
 
