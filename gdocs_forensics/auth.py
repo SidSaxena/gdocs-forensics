@@ -154,6 +154,38 @@ def load_cookiejar(
     return loader(**kwargs)
 
 
+def list_google_accounts(jar, max_index: int = 8) -> list[dict]:
+    """When several accounts share one browser session, enumerate them by their
+    ``authuser`` index. We probe ``/document/u/N/`` and read the active account's
+    email; indices past the last signed-in account redirect back to 0, so we stop
+    when the email repeats account 0's."""
+    import re
+    import requests
+
+    s = requests.Session()
+    s.cookies = requests.cookies.merge_cookies(s.cookies, jar)
+    s.headers.update({"User-Agent": "Mozilla/5.0"})
+    accounts: list[dict] = []
+    zero_email = None
+    for n in range(max_index):
+        try:
+            body = s.get(f"https://docs.google.com/document/u/{n}/", timeout=20).text
+        except Exception:
+            break
+        lab = re.findall(r"Google Account:[^(]*\(([^)]+)\)", body)
+        if lab:
+            email = lab[0]
+        else:
+            found = re.findall(r"[\w.+-]+@[\w.-]+\.[a-z]{2,}", body)
+            email = found[0] if found else None
+        if n == 0:
+            zero_email = email
+        elif email and email == zero_email:
+            break  # redirected to account 0 → no account at this index
+        accounts.append({"authuser": n, "email": email})
+    return accounts
+
+
 def has_auth_cookies(jar: http.cookiejar.CookieJar) -> bool:
     """Heuristic: a signed-in Google session carries SID/SAPISID-family cookies."""
     names = {c.name for c in jar}

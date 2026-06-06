@@ -56,6 +56,13 @@ def main(argv=None) -> int:
                     "(folder e.g. 'Profile 2', display name, or account email)")
     ap.add_argument("--list-profiles", action="store_true",
                     help="List detected browser profiles and exit")
+    ap.add_argument("--authuser", type=int,
+                    help="When several accounts share one browser session, which "
+                    "account index to act as (0 = first/default)")
+    ap.add_argument("--account", help="Account email to act as (resolved to an "
+                    "authuser index); alternative to --authuser")
+    ap.add_argument("--list-accounts", action="store_true",
+                    help="List accounts signed into the browser session and exit")
     ap.add_argument("--cookies", help="Exported cookies.txt (overrides --browser)")
     ap.add_argument("--out", default="./output", help="Output directory")
     ap.add_argument("--chunk", type=int, default=100000, help="Revisions per request")
@@ -74,8 +81,20 @@ def main(argv=None) -> int:
                   f"account={pr['account'] or '(not signed in)'}")
         return 0
 
+    if args.list_accounts:
+        jar = auth.load_cookiejar(browser=args.browser, cookie_file=args.cookies,
+                                  profile=args.profile)
+        accts = auth.list_google_accounts(jar)
+        if not accts:
+            print("No signed-in accounts detected.")
+            return 0
+        print("Accounts in this browser session:")
+        for a in accts:
+            print(f"  --authuser {a['authuser']}   {a['email'] or '(unknown)'}")
+        return 0
+
     if not args.url:
-        ap.error("--url is required (or use --list-profiles)")
+        ap.error("--url is required (or use --list-profiles / --list-accounts)")
 
     doc_id = extract_doc_id(args.url)
     out = os.path.abspath(args.out)
@@ -99,7 +118,22 @@ def main(argv=None) -> int:
               "Make sure you're signed in (or pass --cookies).", file=sys.stderr)
         return 2
 
-    f = fetch.RevisionFetcher(doc_id, jar, raw_dir)
+    # Resolve which signed-in account to act as (for multi-account sessions).
+    authuser = args.authuser
+    if authuser is None and args.account:
+        accts = auth.list_google_accounts(jar)
+        m = next((a for a in accts if (a["email"] or "").lower()
+                  == args.account.lower()), None)
+        if not m:
+            avail = ", ".join(f"{a['authuser']}:{a['email']}" for a in accts)
+            print(f"[!] {args.account} is not signed in here. Available: {avail}",
+                  file=sys.stderr)
+            return 2
+        authuser = m["authuser"]
+    if authuser is not None:
+        print(f"[*] Acting as account index authuser={authuser}.")
+
+    f = fetch.RevisionFetcher(doc_id, jar, raw_dir, authuser=authuser)
     print("[*] Handshake + finding true revision count …")
     di = f.bootstrap()
     last_rev = f.find_last_revision(tab=None, hint=di or 1)

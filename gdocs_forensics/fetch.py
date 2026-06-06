@@ -45,9 +45,13 @@ def _strip_xssi(text: str) -> Any:
 
 
 class RevisionFetcher:
-    def __init__(self, doc_id: str, cookiejar, raw_dir: str):
+    def __init__(self, doc_id: str, cookiejar, raw_dir: str,
+                 authuser: Optional[int] = None):
         self.doc_id = doc_id
         self.raw_dir = raw_dir
+        # When several accounts share one browser session, `authuser` selects
+        # which signed-in account the request acts as (0 = first/default).
+        self.authuser = authuser
         os.makedirs(raw_dir, exist_ok=True)
         self.session = requests.Session()
         self.session.cookies = requests.cookies.merge_cookies(
@@ -64,6 +68,8 @@ class RevisionFetcher:
         params = {"id": self.doc_id, **params}
         if tab:
             params["tab"] = tab
+        if self.authuser is not None:
+            params["authuser"] = self.authuser
         # Retry with backoff on rate limiting (the export/revision endpoints 429).
         for attempt in range(5):
             resp = self.session.get(url, params=params, timeout=60)

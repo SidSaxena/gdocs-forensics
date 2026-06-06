@@ -70,6 +70,9 @@ Everything is written to `./output/`:
   cookies per profile, and the tool reads the *Default* profile unless told
   otherwise. Run `uv run gdocs-forensics --list-profiles` to see them, then add
   `--profile "Profile 1"` (or the profile's display name or account email).
+- **Multiple accounts in one browser session** (e.g. you're signed into several
+  Google accounts at once) — run `--list-accounts` to see them, then add
+  `--account you@example.com` (or `--authuser 2`) to act as the right one.
 - **403 / 404 from the endpoint** — the signed-in account (or profile) can't open
   that document. Use `--profile` to pick the account that has access.
 - **"Could not determine revision count"** — inspect `output/raw/` and
@@ -101,6 +104,10 @@ uv run gdocs-forensics --url URL [options]
   --profile         Chromium profile to read cookies from — folder ("Profile 2"),
                     display name ("Work"), or account email. Default profile if omitted.
   --list-profiles   list detected browser profiles (with accounts) and exit
+  --account         when several accounts share one browser session, the account
+                    EMAIL to act as (resolved to an authuser index)
+  --authuser        same idea, by index (0 = first/default signed-in account)
+  --list-accounts   list accounts signed into the browser session and exit
   --cookies         path to an exported cookies.txt (overrides --browser)
   --out             output directory (default: ./output)
   --no-pdf          skip the PDF report
