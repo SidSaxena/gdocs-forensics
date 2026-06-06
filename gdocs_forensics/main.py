@@ -49,14 +49,33 @@ def main(argv=None) -> int:
             pass
 
     ap = argparse.ArgumentParser(description="Google Docs revision history analysis")
-    ap.add_argument("--url", required=True, help="Doc URL or id")
+    ap.add_argument("--url", help="Doc URL or id")
     ap.add_argument("--browser", default="chrome",
                     help=f"Browser to read cookies from {auth.SUPPORTED_BROWSERS}")
+    ap.add_argument("--profile", help="Chromium profile to read cookies from "
+                    "(folder e.g. 'Profile 2', display name, or account email)")
+    ap.add_argument("--list-profiles", action="store_true",
+                    help="List detected browser profiles and exit")
     ap.add_argument("--cookies", help="Exported cookies.txt (overrides --browser)")
     ap.add_argument("--out", default="./output", help="Output directory")
     ap.add_argument("--chunk", type=int, default=100000, help="Revisions per request")
     ap.add_argument("--no-pdf", action="store_true", help="Skip the PDF report")
     args = ap.parse_args(argv)
+
+    if args.list_profiles:
+        profs = auth.list_profiles(args.browser)
+        if not profs:
+            print(f"No profiles found for {args.browser} "
+                  "(only Chromium-family browsers expose profiles).")
+            return 0
+        print(f"Profiles for {args.browser}:")
+        for pr in profs:
+            print(f"  --profile {pr['dir']:<12} name={pr['name']!r}  "
+                  f"account={pr['account'] or '(not signed in)'}")
+        return 0
+
+    if not args.url:
+        ap.error("--url is required (or use --list-profiles)")
 
     doc_id = extract_doc_id(args.url)
     out = os.path.abspath(args.out)
@@ -64,12 +83,20 @@ def main(argv=None) -> int:
     os.makedirs(out, exist_ok=True)
 
     print(f"[*] Document id: {doc_id}")
-    print(f"[*] Loading session cookies from "
-          f"{'cookies file' if args.cookies else args.browser} …")
-    jar = auth.load_cookiejar(browser=args.browser, cookie_file=args.cookies)
+    src = "cookies file" if args.cookies else args.browser + (
+        f" ({args.profile})" if args.profile else "")
+    print(f"[*] Loading session cookies from {src} …")
+    try:
+        jar = auth.load_cookiejar(browser=args.browser, cookie_file=args.cookies,
+                                  profile=args.profile)
+    except (ValueError, FileNotFoundError) as e:
+        print(f"[!] {e}", file=sys.stderr)
+        return 2
     if not auth.has_auth_cookies(jar):
-        print(f"[!] No Google session cookies found. Sign in in {args.browser} "
-              "first (or pass --cookies).", file=sys.stderr)
+        hint = "" if args.profile else " Try --list-profiles then --profile <name>."
+        print(f"[!] No Google session cookies found for that "
+              f"{'profile' if args.profile else args.browser}.{hint} "
+              "Make sure you're signed in (or pass --cookies).", file=sys.stderr)
         return 2
 
     f = fetch.RevisionFetcher(doc_id, jar, raw_dir)

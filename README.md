@@ -66,8 +66,12 @@ Everything is written to `./output/`:
   (newest Chrome on macOS/Windows) cookie encryption is blocking the read. Try
   `--browser firefox` or `--browser safari`, or export a `cookies.txt` for
   docs.google.com and pass `--cookies cookies.txt`.
-- **403 / 404 from the endpoint** — the signed-in account can't open that document.
-  Sign in as an account that has access.
+- **Multiple browser profiles / wrong account** — Chrome/Edge/Brave keep separate
+  cookies per profile, and the tool reads the *Default* profile unless told
+  otherwise. Run `uv run gdocs-forensics --list-profiles` to see them, then add
+  `--profile "Profile 1"` (or the profile's display name or account email).
+- **403 / 404 from the endpoint** — the signed-in account (or profile) can't open
+  that document. Use `--profile` to pick the account that has access.
 - **"Could not determine revision count"** — inspect `output/raw/` and
   open an issue; Google may have changed the response shape.
 
@@ -92,11 +96,14 @@ Everything is written to `./output/`:
 ## Command reference
 ```
 uv run gdocs-forensics --url URL [options]
-  --url       Google Doc URL or document id (required)
-  --browser   chrome | chromium | firefox | safari | edge | brave   (default: chrome)
-  --cookies   path to an exported cookies.txt (overrides --browser)
-  --out       output directory (default: ./output)
-  --no-pdf    skip the PDF report
+  --url             Google Doc URL or document id (required)
+  --browser         chrome | chromium | firefox | safari | edge | brave   (default: chrome)
+  --profile         Chromium profile to read cookies from — folder ("Profile 2"),
+                    display name ("Work"), or account email. Default profile if omitted.
+  --list-profiles   list detected browser profiles (with accounts) and exit
+  --cookies         path to an exported cookies.txt (overrides --browser)
+  --out             output directory (default: ./output)
+  --no-pdf          skip the PDF report
 ```
 
 ## Outputs
