@@ -66,6 +66,12 @@ Everything is written to `./output/`:
   (newest Chrome on macOS/Windows) cookie encryption is blocking the read. Try
   `--browser firefox` or `--browser safari`, or export a `cookies.txt` for
   docs.google.com and pass `--cookies cookies.txt`.
+- **"Unable to get key for cookie decryption"** — the browser's cookie store is
+  encrypted and couldn't be unlocked. Recent **Chrome on Windows** uses app-bound
+  encryption that can't be read; on macOS a Keychain prompt may have been denied.
+  Easiest fix: sign into the doc in **Firefox** and use `--browser firefox`. Or
+  export a `cookies.txt` for google.com and pass `--cookies cookies.txt` (works
+  with any browser, bypasses decryption).
 - **Multiple browser profiles / wrong account** — Chrome/Edge/Brave keep separate
   cookies per profile, and the tool reads the *Default* profile unless told
   otherwise. Run `uv run gdocs-forensics --list-profiles` to see them, then add

@@ -111,6 +111,18 @@ def main(argv=None) -> int:
     except (ValueError, FileNotFoundError) as e:
         print(f"[!] {e}", file=sys.stderr)
         return 2
+    except Exception as e:
+        # browser_cookie3 raises BrowserCookieError when it can't decrypt the
+        # browser's cookie store (e.g. recent Chrome's app-bound encryption on
+        # Windows, or no Keychain/keyring access).
+        print(f"[!] Couldn't read cookies from {args.browser}: {e}", file=sys.stderr)
+        print("[!] This is usually browser cookie encryption (recent Chrome on "
+              "Windows uses app-bound encryption that can't be read).\n"
+              "    Fixes:\n"
+              "      • sign into the doc in Firefox and re-run with --browser firefox\n"
+              "      • or export a cookies.txt for google.com and pass --cookies cookies.txt",
+              file=sys.stderr)
+        return 2
     if not auth.has_auth_cookies(jar):
         hint = "" if args.profile else " Try --list-profiles then --profile <name>."
         print(f"[!] No Google session cookies found for that "
