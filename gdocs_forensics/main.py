@@ -134,15 +134,30 @@ def main(argv=None) -> int:
         print(f"[*] Acting as account index authuser={authuser}.")
 
     f = fetch.RevisionFetcher(doc_id, jar, raw_dir, authuser=authuser)
-    print("[*] Handshake + finding true revision count …")
-    di = f.bootstrap()
-    last_rev = f.find_last_revision(tab=None, hint=di or 1)
-    print(f"[*] Document has {last_rev} revisions. Fetching full changelog …")
-    tiles = f.tiles(last_rev)
-    user_map = parse.build_user_map(tiles)
-    rev_authors = parse.build_revision_author_index(tiles)
-    changelog = f.load_all(last_rev, chunk=args.chunk)
-    f.write_manifest()
+    try:
+        print("[*] Handshake + finding true revision count …")
+        di = f.bootstrap()
+        last_rev = f.find_last_revision(tab=None, hint=di or 1)
+        print(f"[*] Document has {last_rev} revisions. Fetching full changelog …")
+        tiles = f.tiles(last_rev)
+        user_map = parse.build_user_map(tiles)
+        rev_authors = parse.build_revision_author_index(tiles)
+        changelog = f.load_all(last_rev, chunk=args.chunk)
+        f.write_manifest()
+    except (PermissionError, FileNotFoundError) as e:
+        accts = auth.list_google_accounts(jar)
+        who = ("the current account" if authuser is None
+               else f"account index {authuser}")
+        print(f"[!] {e}\n[!] {who.capitalize()} can't open this document.",
+              file=sys.stderr)
+        if len(accts) > 1:
+            opts = " | ".join(f"--account {a['email']}" for a in accts if a["email"])
+            print(f"[!] Multiple accounts are signed in here — try one that has "
+                  f"access:\n    {opts}", file=sys.stderr)
+        else:
+            print("[!] Sign in with an account that has access "
+                  "(see --list-profiles / --list-accounts).", file=sys.stderr)
+        return 2
 
     tab_titles = parse.extract_tab_titles(changelog)
     structure = parse.extract_structure_events(changelog)
